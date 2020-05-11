@@ -188,6 +188,7 @@ void AccumulateIMUShift(){
   float accY = imuAccY[imuPointerLast];
   float accZ = imuAccZ[imuPointerLast];
 
+/*
   //rotate the acceleration value of the current moment around the ZXY fixed axis
   //by (roll, pitch, yaw) angle to conver to the world.
 
@@ -205,7 +206,7 @@ void AccumulateIMUShift(){
   accX = sin(pitch) * z2 + cos(pitch) * x2;
   accY = y2;
   accZ = cos(pitch) * z2 - sin(pitch) * x2;
-
+*/
   //Previous IMU point
   int imuPointerBack = (imuPointerLast + imuQueLength - 1) % imuQueLength;
   //The time elapsed from the previous point to the current point->IMU measurement period(0.02, 50Hz)
@@ -404,18 +405,18 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudIn2){
   imuShiftFromStartYCur = imuShiftYCur - imuShiftYStart - imuVeloYStart * (timeLasted - timeStart);
   imuShiftFromStartZCur = imuShiftZCur - imuShiftZStart - imuVeloZStart * (timeLasted - timeStart);
 
-  ShiftToStartIMU();
+  //ShiftToStartIMU();
 
   imuVeloFromStartXCur = imuVeloXCur - imuVeloXStart;
   imuVeloFromStartYCur = imuVeloYCur - imuVeloYStart;
   imuVeloFromStartZCur = imuVeloZCur - imuVeloZStart;
 
-  VeloToStartIMU();
-
+  //VeloToStartIMU();
+  /*
   for (int i = 0; i < cloudSize; i++) {
     TransformToStartIMU(&laserCloud->points[i]);
   }
-
+*/
   for (int i = 5; i < cloudSize - 5; i++) {
     float diffX = laserCloud->points[i - 5].x + laserCloud->points[i - 4].x 
                 + laserCloud->points[i - 3].x + laserCloud->points[i - 2].x 
@@ -710,9 +711,9 @@ void imuHandler(const sensor_msgs::Imu::ConstPtr& imuIn){
     //imuAccuRoll += timeDiff * imuIn->angular_velocity.x;
     //imuAccuPitch += timeDiff * imuIn->angular_velocity.y;
     //imuAccuYaw += timeDiff * imuIn->angular_velocity.z;
-    float accX = imuIn->linear_acceleration.x - sin(pitch)*cos(roll) * 9.81;
-    float accY = imuIn->linear_acceleration.y - sin(roll) * cos(pitch) * 9.81;
-    float accZ = imuIn->linear_acceleration.z + cos(roll) * cos(pitch) * 9.81;
+    float accX = imuIn-> linear_acceleration . x + sin (pitch) * 9.81 ;
+    float accY = imuIn-> linear_acceleration . y - sin (roll) * cos (pitch) * 9.81 ;    
+    float accZ = imuIn-> linear_acceleration . z - cos (roll) * cos (pitch) * 9.81 ;    
 
     imuRoll[imuPointerLast] = roll;
     imuPitch[imuPointerLast] = pitch;
