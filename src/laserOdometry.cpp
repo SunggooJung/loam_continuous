@@ -74,8 +74,7 @@ float imuVeloFromStartXLast = 0, imuVeloFromStartYLast = 0, imuVeloFromStartZLas
 
 bool imuInited = false;
 
-void TransformReset()
-{
+void TransformReset(){
   for (int i = 0; i < 6; i++) {
     transformRec[i] = transform[i];
     transform[i] = 0;
@@ -86,10 +85,14 @@ void TransformReset()
   transformRec[5] -= imuVeloFromStartZLast * (startTimeCur - startTimeLast);
 }
 
-void TransformToStart(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTime, double endTime)
-{
+//The point in the current pointcloud removes the distortion caused by the uniform motion relative to the first point.
+void TransformToStart(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTime, double endTime){
+
+  //Calculation of interpolation coefficient, relative time of each point in the cloud / poinc loud period
   float s = (pi->h - startTime) / (endTime - startTime);
 
+  //Linear interpolation: according to the relative positionl relationship of each point in the point cloud
+  //multipled by the corresponding rotation translation coefficient
   float rx = s * transform[0];
   float ry = s * transform[1];
   float rz = s * transform[2];
@@ -97,14 +100,17 @@ void TransformToStart(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTi
   float ty = s * transform[4];
   float tz = s * transform[5];
 
+  //rotate around the z axis after translation
   float x1 = cos(rz) * (pi->x - tx) + sin(rz) * (pi->y - ty);
   float y1 = -sin(rz) * (pi->x - tx) + cos(rz) * (pi->y - ty);
   float z1 = (pi->z - tz);
 
+  //rotate around the x axis (-rx)
   float x2 = x1;
   float y2 = cos(rx) * y1 + sin(rx) * z1;
   float z2 = -sin(rx) * y1 + cos(rx) * z1;
 
+  //rotate around the y axis
   po->x = cos(ry) * x2 - sin(ry) * z2;
   po->y = y2;
   po->z = sin(ry) * x2 + cos(ry) * z2;
@@ -113,8 +119,8 @@ void TransformToStart(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTi
   po->v = pi->v;
 }
 
-void TransformToEnd(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTime, double endTime)
-{
+void TransformToEnd(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTime, double endTime){
+
   float s = (pi->h - startTime) / (endTime - startTime);
 
   float rx = s * transform[0];
@@ -155,39 +161,40 @@ void TransformToEnd(pcl::PointXYZHSV *pi, pcl::PointXYZHSV *po, double startTime
   float y6 = sin(rz) * x5 + cos(rz) * y5 + ty;
   float z6 = z5 + tz;
 
-  float x7 = cos(imuRollStartLast) * (x6 - imuShiftFromStartXLast) 
-           - sin(imuRollStartLast) * (y6 - imuShiftFromStartYLast);
-  float y7 = sin(imuRollStartLast) * (x6 - imuShiftFromStartXLast) 
-           + cos(imuRollStartLast) * (y6 - imuShiftFromStartYLast);
-  float z7 = z6 - imuShiftFromStartZLast;
+  float x7 = x6 - imuShiftFromStartXLast;
+  float y7 = cos(imuRollStartLast) * (y6 - imuShiftFromStartYLast) 
+           - sin(imuRollStartLast) * (z6 - imuShiftFromStartZLast);
+  float z7 = sin(imuRollStartLast) * (y6 - imuShiftFromStartYLast) 
+           + cos(imuRollStartLast) * (z6 - imuShiftFromStartZLast);  
 
-  float x8 = x7;
-  float y8 = cos(imuPitchStartLast) * y7 - sin(imuPitchStartLast) * z7;
-  float z8 = sin(imuPitchStartLast) * y7 + cos(imuPitchStartLast) * z7;
+  float x8 = sin(imuPitchStartLast) * z7 + cos(imuPitchStartLast) * x7;
+  float y8 = y7;
+  float z8 = cos(imuPitchStartLast) * z7 - sin(imuPitchStartLast) * x7;
+  
+  float x9 = -sin(imuYawStartLast) * y8 + cos(imuYawStartLast) * x8;
+  float y9 = cos(imuYawStartLast) * y8 + sin(imuYawStartLast) * x8;
+  float z9 = z8;  
 
-  float x9 = cos(imuYawStartLast) * x8 + sin(imuYawStartLast) * z8;
-  float y9 = y8;
-  float z9 = -sin(imuYawStartLast) * x8 + cos(imuYawStartLast) * z8;
+  float x10 = sin(imuYawLast) * y9 + cos(imuYawLast) * x9;
+  float y10 = cos(imuYawLast) * y9 - sin(imuYawLast) * x9;
+  float z10 = z9;  
 
-  float x10 = cos(imuYawLast) * x9 - sin(imuYawLast) * z9;
-  float y10 = y9;
-  float z10 = sin(imuYawLast) * x9 + cos(imuYawLast) * z9;
+  float x11 = -sin(imuPitchLast) * z10 + cos(imuPitchLast) * x10;
+  float y11 = y10;
+  float z11 = cos(imuPitchLast) * z10 + sin(imuPitchLast) * x10;  
 
-  float x11 = x10;
-  float y11 = cos(imuPitchLast) * y10 + sin(imuPitchLast) * z10;
-  float z11 = -sin(imuPitchLast) * y10 + cos(imuPitchLast) * z10;
-
-  po->x = cos(imuRollLast) * x11 + sin(imuRollLast) * y11;
-  po->y = -sin(imuRollLast) * x11 + cos(imuRollLast) * y11;
-  po->z = z11;
+  po->x = x11;
+  po->y = cos(imuRollLast) * y11 + sin(imuRollLast) * z11;
+  po->z = -sin(imuRollLast) * y11 + cos(imuRollLast) * z11;
+  
   po->h = pi->h;
   po->s = pi->s;
   po->v = pi->v;
 }
 
 void AccumulateRotation(float cx, float cy, float cz, float lx, float ly, float lz, 
-                        float &ox, float &oy, float &oz)
-{
+                        float &ox, float &oy, float &oz){
+  
   float srx = cos(lx)*cos(cx)*sin(ly)*sin(cz) - cos(cx)*cos(cz)*sin(lx) - cos(lx)*cos(ly)*sin(cx);
   ox = -asin(srx);
 
@@ -280,13 +287,13 @@ void laserCloudExtreCurHandler(const sensor_msgs::PointCloud2ConstPtr& laserClou
   laserCloudExtreCur->clear();
   for (int i = 0; i < laserCloudExtreCur3Size; i++) {
     if (fabs(laserCloudExtreCur3->points[i].v - 10) < 0.005) {
-      imuPitchStartCur = laserCloudExtreCur3->points[i].x;
-      imuYawStartCur = laserCloudExtreCur3->points[i].y;
-      imuRollStartCur = laserCloudExtreCur3->points[i].z;
+      imuRollStartCur = laserCloudExtreCur3->points[i].x;
+      imuPitchStartCur = laserCloudExtreCur3->points[i].y;
+      imuYawStartCur = laserCloudExtreCur3->points[i].z;      
     } else if (fabs(laserCloudExtreCur3->points[i].v - 11) < 0.005) {
-      imuPitchCur = laserCloudExtreCur3->points[i].x;
-      imuYawCur = laserCloudExtreCur3->points[i].y;
-      imuRollCur = laserCloudExtreCur3->points[i].z;
+      imuRollCur = laserCloudExtreCur3->points[i].x;
+      imuPitchCur = laserCloudExtreCur3->points[i].y;
+      imuYawCur = laserCloudExtreCur3->points[i].z;      
     } else if (fabs(laserCloudExtreCur3->points[i].v - 12) < 0.005) {
       imuShiftFromStartXCur = laserCloudExtreCur3->points[i].x;
       imuShiftFromStartYCur = laserCloudExtreCur3->points[i].y;
@@ -302,9 +309,9 @@ void laserCloudExtreCurHandler(const sensor_msgs::PointCloud2ConstPtr& laserClou
   laserCloudExtreCur3->clear();
 
   if (!imuInited) {
-    transformSum[0] += imuPitchStartCur;
-    //transformSum[1] += imuYawStartCur;
-    transformSum[2] += imuRollStartCur;
+    transformSum[0] += imuRollStartCur;
+    transformSum[1] += imuPitchStartCur;
+    transformSum[2] += imuYawStartCur;
 
     imuInited = true;
   }
@@ -347,14 +354,14 @@ void laserCloudLastHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudLas
         laserCloudSurfLast->push_back(laserCloudLast->points[i]);
       }
       if (fabs(laserCloudLast->points[i].v - 10) < 0.005) {
-        imuPitchStartLast = laserCloudLast->points[i].x;
-        imuYawStartLast = laserCloudLast->points[i].y;
-        imuRollStartLast = laserCloudLast->points[i].z;
+        imuRollStartLast = laserCloudLast->points[i].x;
+        imuPitchStartLast = laserCloudLast->points[i].y;
+        imuYawStartLast = laserCloudLast->points[i].z;        
       }
       if (fabs(laserCloudLast->points[i].v - 11) < 0.005) {
-        imuPitchLast = laserCloudLast->points[i].x;
-        imuYawLast = laserCloudLast->points[i].y;
-        imuRollLast = laserCloudLast->points[i].z;
+        imuRollLast = laserCloudLast->points[i].x;
+        imuPitchLast = laserCloudLast->points[i].y;
+        imuYawLast = laserCloudLast->points[i].z;        
       }
       if (fabs(laserCloudLast->points[i].v - 12) < 0.005) {
         imuShiftFromStartXLast = laserCloudLast->points[i].x;
@@ -924,7 +931,7 @@ int main(int argc, char** argv)
       float rx, ry, rz, tx, ty, tz;
       if (sweepEnd) {
         AccumulateRotation(transformSum[0], transformSum[1], transformSum[2], 
-                           -transform[0], -transform[1] * 1.05, -transform[2], rx, ry, rz);
+                           -transform[0], -transform[1]* 1.05, -transform[2], rx, ry, rz);
 
         float x1 = cos(rz) * (transform[3] - imuShiftFromStartXLast) 
                  - sin(rz) * (transform[4] - imuShiftFromStartYLast);
@@ -940,8 +947,8 @@ int main(int argc, char** argv)
         ty = transformSum[4] - y2;
         tz = transformSum[5] - (-sin(ry) * x2 + cos(ry) * z2);
 
-        PluginIMURotation(rx, ry, rz, imuPitchStartLast, imuYawStartLast, imuRollStartLast, 
-                          imuPitchLast, imuYawLast, imuRollLast, rx, ry, rz);
+        PluginIMURotation(rx, rz, ry, imuRollStartLast, imuPitchStartLast, imuYawStartLast, 
+                          imuRollLast, imuPitchLast, imuYawLast, rx, rz, ry);
 
         int laserCloudCornerLastNum = laserCloudCornerLast->points.size();
         for (int i = 0; i < laserCloudCornerLastNum; i++) {
@@ -972,7 +979,7 @@ int main(int argc, char** argv)
 
       } else {
         AccumulateRotation(transformSum[0], transformSum[1], transformSum[2], 
-                           -transform[0], -transform[1] * 1.05, -transform[2], rx, ry, rz);
+                           -transform[0], -transform[1]* 1.05, -transform[2], rx, ry, rz);
 
         float x1 = cos(rz) * (transform[3] - imuShiftFromStartXCur) 
                  - sin(rz) * (transform[4] - imuShiftFromStartYCur);
@@ -988,22 +995,22 @@ int main(int argc, char** argv)
         ty = transformSum[4] - y2;
         tz = transformSum[5] - (-sin(ry) * x2 + cos(ry) * z2);
 
-        PluginIMURotation(rx, ry, rz, imuPitchStartCur, imuYawStartCur, imuRollStartCur, 
-                          imuPitchCur, imuYawCur, imuRollCur, rx, ry, rz);
+        PluginIMURotation(rx, rz, ry, imuRollStartLast, imuPitchStartLast, imuYawStartLast, 
+                          imuRollLast, imuPitchLast, imuYawLast, rx, rz, ry);
       }
 
-      geometry_msgs::Quaternion geoQuat = tf::createQuaternionMsgFromRollPitchYaw(rz, -rx, -ry);
+      geometry_msgs::Quaternion geoQuat = tf::createQuaternionMsgFromRollPitchYaw(rx, ry, rz);
 
-      laserOdometry.pose.pose.orientation.x = -geoQuat.y;
-      laserOdometry.pose.pose.orientation.y = -geoQuat.z;
-      laserOdometry.pose.pose.orientation.z = geoQuat.x;
+      laserOdometry.pose.pose.orientation.x = geoQuat.x;
+      laserOdometry.pose.pose.orientation.y = geoQuat.y;
+      laserOdometry.pose.pose.orientation.z = geoQuat.z;
       laserOdometry.pose.pose.orientation.w = geoQuat.w;
       laserOdometry.pose.pose.position.x = tx;
       laserOdometry.pose.pose.position.y = ty;
       laserOdometry.pose.pose.position.z = tz;
       pubLaserOdometry.publish(laserOdometry);
 
-      laserOdometryTrans.setRotation(tf::Quaternion(-geoQuat.y, -geoQuat.z, geoQuat.x, geoQuat.w));
+      laserOdometryTrans.setRotation(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w));
       laserOdometryTrans.setOrigin(tf::Vector3(tx, ty, tz));
       tfBroadcaster.sendTransform(laserOdometryTrans);
 

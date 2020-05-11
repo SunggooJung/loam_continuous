@@ -207,11 +207,11 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr& laserOdometry)
 
   double roll, pitch, yaw;
   geometry_msgs::Quaternion geoQuat = laserOdometry->pose.pose.orientation;
-  tf::Matrix3x3(tf::Quaternion(geoQuat.z, -geoQuat.x, -geoQuat.y, geoQuat.w)).getRPY(roll, pitch, yaw);
+  tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
 
-  transformSum[0] = -pitch;
-  transformSum[1] = -yaw;
-  transformSum[2] = roll;
+  transformSum[0] = roll;
+  transformSum[1] = pitch;
+  transformSum[2] = yaw;  
 
   transformSum[3] = laserOdometry->pose.pose.position.x;
   transformSum[4] = laserOdometry->pose.pose.position.y;
@@ -723,12 +723,12 @@ int main(int argc, char** argv)
       pubLaserCloudSurround.publish(laserCloudSurround2);
 
       geometry_msgs::Quaternion geoQuat = tf::createQuaternionMsgFromRollPitchYaw
-                     (transformBefMapped[2], -transformBefMapped[0], -transformBefMapped[1]);
+                     (transformBefMapped[0], transformBefMapped[1], transformBefMapped[2]);
 
       odomBefMapped.header.stamp = ros::Time().fromSec(timeLaserCloudLast);
-      odomBefMapped.pose.pose.orientation.x = -geoQuat.y;
-      odomBefMapped.pose.pose.orientation.y = -geoQuat.z;
-      odomBefMapped.pose.pose.orientation.z = geoQuat.x;
+      odomBefMapped.pose.pose.orientation.x = geoQuat.x;
+      odomBefMapped.pose.pose.orientation.y = geoQuat.y;
+      odomBefMapped.pose.pose.orientation.z = geoQuat.z;
       odomBefMapped.pose.pose.orientation.w = geoQuat.w;
       odomBefMapped.pose.pose.position.x = transformBefMapped[3];
       odomBefMapped.pose.pose.position.y = transformBefMapped[4];
@@ -736,12 +736,12 @@ int main(int argc, char** argv)
       pubOdomBefMapped.publish(odomBefMapped);
 
       geoQuat = tf::createQuaternionMsgFromRollPitchYaw
-                (transformAftMapped[2], -transformAftMapped[0], -transformAftMapped[1]);
+                (transformAftMapped[0], transformAftMapped[1], transformAftMapped[2]);
 
       odomAftMapped.header.stamp = ros::Time().fromSec(timeLaserCloudLast);
-      odomAftMapped.pose.pose.orientation.x = -geoQuat.y;
-      odomAftMapped.pose.pose.orientation.y = -geoQuat.z;
-      odomAftMapped.pose.pose.orientation.z = geoQuat.x;
+      odomAftMapped.pose.pose.orientation.x = geoQuat.x;
+      odomAftMapped.pose.pose.orientation.y = geoQuat.y;
+      odomAftMapped.pose.pose.orientation.z = geoQuat.z;
       odomAftMapped.pose.pose.orientation.w = geoQuat.w;
       odomAftMapped.pose.pose.position.x = transformAftMapped[3];
       odomAftMapped.pose.pose.position.y = transformAftMapped[4];

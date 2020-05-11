@@ -133,11 +133,11 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr& laserOdometry)
 
     double roll, pitch, yaw;
     geometry_msgs::Quaternion geoQuat = laserOdometry->pose.pose.orientation;
-    tf::Matrix3x3(tf::Quaternion(geoQuat.z, -geoQuat.x, -geoQuat.y, geoQuat.w)).getRPY(roll, pitch, yaw);
+    tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
 
-    transformSum[0] = -pitch;
-    transformSum[1] = -yaw;
-    transformSum[2] = roll;
+    transformSum[0] = roll;
+    transformSum[1] = pitch;
+    transformSum[2] = yaw;    
 
     transformSum[3] = laserOdometry->pose.pose.position.x;
     transformSum[4] = laserOdometry->pose.pose.position.y;
@@ -146,7 +146,7 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr& laserOdometry)
     transformAssociateToMap();
 
     geoQuat = tf::createQuaternionMsgFromRollPitchYaw
-              (transformMapped[2], -transformMapped[0], -transformMapped[1]);
+              (transformMapped[0], transformMapped[1], transformMapped[2]);
 
     laserOdometry2.header.stamp = laserOdometry->header.stamp;
     laserOdometry2.pose.pose.orientation.x = -geoQuat.y;
@@ -171,11 +171,11 @@ void odomBefMappedHandler(const nav_msgs::Odometry::ConstPtr& odomBefMapped)
 
   double roll, pitch, yaw;
   geometry_msgs::Quaternion geoQuat = odomBefMapped->pose.pose.orientation;
-  tf::Matrix3x3(tf::Quaternion(geoQuat.z, -geoQuat.x, -geoQuat.y, geoQuat.w)).getRPY(roll, pitch, yaw);
+  tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
 
-  transformBefMapped[0] = -pitch;
-  transformBefMapped[1] = -yaw;
-  transformBefMapped[2] = roll;
+  transformBefMapped[0] = roll;
+  transformBefMapped[1] = pitch;
+  transformBefMapped[2] = yaw;
 
   transformBefMapped[3] = odomBefMapped->pose.pose.position.x;
   transformBefMapped[4] = odomBefMapped->pose.pose.position.y;
@@ -188,11 +188,11 @@ void odomAftMappedHandler(const nav_msgs::Odometry::ConstPtr& odomAftMapped)
 
   double roll, pitch, yaw;
   geometry_msgs::Quaternion geoQuat = odomAftMapped->pose.pose.orientation;
-  tf::Matrix3x3(tf::Quaternion(geoQuat.z, -geoQuat.x, -geoQuat.y, geoQuat.w)).getRPY(roll, pitch, yaw);
+  tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
 
-  transformAftMapped[0] = -pitch;
-  transformAftMapped[1] = -yaw;
-  transformAftMapped[2] = roll;
+  transformAftMapped[0] = roll;
+  transformAftMapped[1] = pitch;
+  transformAftMapped[2] = yaw;
 
   transformAftMapped[3] = odomAftMapped->pose.pose.position.x;
   transformAftMapped[4] = odomAftMapped->pose.pose.position.y;
